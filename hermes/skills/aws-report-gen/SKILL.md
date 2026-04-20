@@ -147,10 +147,9 @@ Confirm the file is non-empty before proceeding to upload.
 #### Option A — Use the shared helper script (preferred)
 
 ```bash
-bash shared/slack-notify.sh \
-  --bucket "$S3_REPORT_BUCKET" \
-  --file "finops-report-$(date +%Y-%m-%d).html" \
-  --webhook "$SLACK_WEBHOOK_URL"
+S3_REPORT_BUCKET="$S3_REPORT_BUCKET" \
+SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL" \
+./shared/slack-notify.sh "finops-report-$(date +%Y-%m-%d).html"
 ```
 
 #### Option B — Manual upload and notification
@@ -159,7 +158,7 @@ Upload the report to S3 with the correct content type:
 
 ```bash
 aws s3 cp "finops-report-$(date +%Y-%m-%d).html" \
-  "s3://$S3_REPORT_BUCKET/reports/finops-report-$(date +%Y-%m-%d).html" \
+  "s3://$S3_REPORT_BUCKET/finops/$(date +%Y-%m-%d).html" \
   --content-type "text/html"
 ```
 
@@ -167,7 +166,7 @@ Generate a pre-signed URL (valid for 7 days):
 
 ```bash
 aws s3 presign \
-  "s3://$S3_REPORT_BUCKET/reports/finops-report-$(date +%Y-%m-%d).html" \
+  "s3://$S3_REPORT_BUCKET/finops/$(date +%Y-%m-%d).html" \
   --expires-in 604800
 ```
 

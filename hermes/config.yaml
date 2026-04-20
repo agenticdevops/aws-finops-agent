@@ -1,5 +1,6 @@
 # AWS FinOps Agent — Hermes Configuration
-# Copy to ~/.hermes/config.yaml or use with: hermes --config ./hermes/config.yaml
+# Usage: hermes --config ./hermes/config.yaml (run from project root)
+# NOTE: Relative paths (cwd, MCP, skills) require launching Hermes from the project root.
 
 # =============================================================================
 # Model
@@ -20,11 +21,24 @@ terminal:
 # =============================================================================
 # Approval & Guardrails
 # =============================================================================
-# Mode: "smart" uses auxiliary LLM to auto-approve safe commands
-# Built-in DANGEROUS_PATTERNS in Hermes already block rm -rf, chmod 777, etc.
+# Mode: "smart" uses auxiliary LLM to auto-approve safe commands.
+# Built-in DANGEROUS_PATTERNS in Hermes block rm -rf, chmod 777, etc.
+# auto_approve_patterns below skip LLM check for known-safe read commands.
 approvals:
   mode: "smart"
   timeout: 30
+  auto_approve_patterns:
+    - "^aws\\s+\\S+\\s+describe-"
+    - "^aws\\s+\\S+\\s+list-"
+    - "^aws\\s+\\S+\\s+get-"
+    - "^aws\\s+ce\\s+get-"
+    - "^aws\\s+s3\\s+cp\\s+.*\\s+s3://"
+    - "^aws\\s+s3\\s+presign"
+    - "^aws\\s+s3api\\s+get-"
+    - "^aws\\s+s3api\\s+list-"
+    - "^aws\\s+sts\\s+get-caller-identity"
+    - "^aws\\s+configure\\s+list-profiles"
+    - "^jq\\s+"
 
 # =============================================================================
 # MCP Servers

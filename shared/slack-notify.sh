@@ -22,28 +22,25 @@ aws s3 cp "${REPORT_FILE}" \
   ${AWS_PROFILE_FLAG} 2>&1
 
 # Generate pre-signed URL (7 day expiry)
-PRESIGNED_URL=$(aws s3 presign \
+if ! PRESIGNED_URL=$(aws s3 presign \
   "s3://${S3_REPORT_BUCKET}/${S3_KEY}" \
   --expires-in 604800 \
-  ${AWS_PROFILE_FLAG} 2>&1)
+  ${AWS_PROFILE_FLAG} 2>/dev/null); then
+  echo "ERROR: Failed to generate presigned URL" >&2
+  exit 1
+fi
 
 echo "Report URL: ${PRESIGNED_URL}"
 
 # Post to Slack (if webhook configured)
 if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
   echo "Notifying Slack..."
-  curl -sf -X POST "${SLACK_WEBHOOK_URL}" \
-    -H 'Content-type: application/json' \
-    -d "{
-      \"text\": \"Weekly AWS FinOps Report Ready — ${DATE}\",
-      \"blocks\": [{
-        \"type\": \"section\",
-        \"text\": {
-          \"type\": \"mrkdwn\",
-          \"text\": \"*Weekly AWS FinOps Report* — ${DATE}\n\n<${PRESIGNED_URL}|View Full Report>\"
-        }
-      }]
-    }" 2>&1
+  jq -n --arg date "$DATE" --arg url "$PRESIGNED_URL" \
+    '{text: "Weekly AWS FinOps Report Ready — \($date)", blocks: [{type: "section", text: {type: "mrkdwn", text: "*Weekly AWS FinOps Report* — \($date)\n\n<\($url)|View Full Report>"}}]}' \
+  | curl -sf -X POST "${SLACK_WEBHOOK_URL}" \
+      -H 'Content-type: application/json' \
+      -d @-
+  echo ""
   echo "Slack notification sent."
 else
   echo "SLACK_WEBHOOK_URL not set — skipping notification."

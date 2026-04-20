@@ -108,7 +108,7 @@ aws ce get-cost-forecast \
 ```bash
 aws ce get-rightsizing-recommendation \
   --service EC2 \
-  --output json
+  --profile <profile-name> --output json
 ```
 
 Parse and surface:
@@ -124,7 +124,7 @@ END_DATE=$(date +%Y-%m-%d)
 
 aws ce get-reservation-utilization \
   --time-period Start=${START_DATE},End=${END_DATE} \
-  --output json
+  --profile <profile-name> --output json
 ```
 
 Key metrics to extract:
@@ -140,7 +140,7 @@ END_DATE=$(date +%Y-%m-%d)
 
 aws ce get-savings-plans-utilization-details \
   --time-period Start=${START_DATE},End=${END_DATE} \
-  --output json
+  --profile <profile-name> --output json
 ```
 
 Key metrics to extract:
