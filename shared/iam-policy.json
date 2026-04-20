@@ -1,0 +1,47 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FinOpsReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetRightsizingRecommendation",
+        "ce:GetReservationUtilization",
+        "ce:GetSavingsPlansUtilizationDetails",
+        "ce:GetCostForecast",
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeNatGateways",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeNetworkInterfaces",
+        "rds:DescribeDBInstances",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketLocation",
+        "s3:GetLifecycleConfiguration",
+        "budgets:ViewBudget",
+        "budgets:DescribeBudgets",
+        "support:DescribeTrustedAdvisorChecks",
+        "support:DescribeTrustedAdvisorCheckResult",
+        "support:RefreshTrustedAdvisorCheck",
+        "sts:GetCallerIdentity",
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:GetMetricData"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "FinOpsReportUpload",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::REPORT_BUCKET_NAME/finops/*"
+    }
+  ]
+}
