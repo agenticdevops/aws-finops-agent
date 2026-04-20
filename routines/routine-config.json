@@ -1,0 +1,33 @@
+{
+  "name": "aws-finops-weekly",
+  "description": "Weekly AWS FinOps analysis — scans all accounts, generates HTML dashboard, uploads to S3, notifies Slack",
+  "schedule": {
+    "type": "weekly",
+    "day": "monday",
+    "time": "09:00",
+    "timezone": "UTC"
+  },
+  "model": "claude-haiku-4-5-20251001",
+  "prompt_file": "shared/prompt.md",
+  "prompt_prefix": "You are running as a Claude Routine (cloud-hosted agent). Read shared/prompt.md for your full instructions. The report template is at shared/report-template.html. The notification script is at shared/slack-notify.sh. Execute all phases: discovery, data collection, report generation, delivery. AWS credentials are in environment variables. This is a single-account run (one set of credentials).",
+  "environment": {
+    "network": "trusted",
+    "env_vars": {
+      "AWS_ACCESS_KEY_ID": "REPLACE_WITH_YOUR_KEY",
+      "AWS_SECRET_ACCESS_KEY": "REPLACE_WITH_YOUR_SECRET",
+      "AWS_DEFAULT_REGION": "us-east-1",
+      "S3_REPORT_BUCKET": "REPLACE_WITH_BUCKET_NAME",
+      "SLACK_WEBHOOK_URL": "REPLACE_WITH_WEBHOOK_URL"
+    },
+    "setup_script": "pip install awscli jinja2 && cd aws-finops-mcp-server && pip install uv && uv sync"
+  },
+  "repositories": [
+    "REPLACE_WITH_YOUR_REPO_URL"
+  ],
+  "connectors": ["slack"],
+  "notes": {
+    "multi_account": "Claude Routines run in isolated environments without ~/.aws/credentials. For multi-account: (a) create one routine per account, (b) use cross-account IAM roles with STS, or (c) pass multiple credential sets as env vars.",
+    "mcp_server": "The MCP server must be installed per run via setup_script. It runs as a subprocess via uv.",
+    "costs": "Each run uses Haiku 4.5 tokens + AWS Cost Explorer API calls (~$0.02). Estimated total: $0.10-0.50 per weekly run."
+  }
+}
