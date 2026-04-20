@@ -1,0 +1,76 @@
+# AWS FinOps Agent — Hermes Configuration
+# Copy to ~/.hermes/config.yaml or use with: hermes --config ./hermes/config.yaml
+
+# =============================================================================
+# Model
+# =============================================================================
+model:
+  default: "anthropic/claude-haiku-4-5"
+  provider: "anthropic"
+
+# =============================================================================
+# Terminal (where agent executes aws cli commands)
+# =============================================================================
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 300
+  lifetime_seconds: 600
+
+# =============================================================================
+# Approval & Guardrails
+# =============================================================================
+# Mode: "smart" uses auxiliary LLM to auto-approve safe commands
+# Built-in DANGEROUS_PATTERNS in Hermes already block rm -rf, chmod 777, etc.
+approvals:
+  mode: "smart"
+  timeout: 30
+
+# =============================================================================
+# MCP Servers
+# =============================================================================
+mcp_servers:
+  aws-finops:
+    command: "uv"
+    args: ["run", "--directory", "./aws-finops-mcp-server", "aws-finops-mcp-server"]
+    timeout: 120
+    connect_timeout: 30
+
+# =============================================================================
+# Agent Behavior
+# =============================================================================
+agent:
+  max_turns: 80
+  reasoning_effort: "medium"
+
+# =============================================================================
+# Memory
+# =============================================================================
+memory:
+  memory_enabled: true
+  user_profile_enabled: false
+  memory_char_limit: 2200
+
+# =============================================================================
+# Skills
+# =============================================================================
+skills:
+  external_dirs:
+    - ./hermes/skills
+
+# =============================================================================
+# Context Compression
+# =============================================================================
+compression:
+  enabled: true
+  threshold: 0.50
+  target_ratio: 0.20
+  protect_last_n: 20
+
+# =============================================================================
+# Display
+# =============================================================================
+display:
+  compact: false
+  tool_progress: "all"
+  streaming: true
