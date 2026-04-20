@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS FinOps Report — {{report_date}}</title>
+  <style>
+    /* ── CSS Custom Properties ── */
+    :root {
+      --bg:        #0f172a;
+      --card:      #1e293b;
+      --border:    #334155;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --accent:    #10b981;
+      --warning:   #f59e0b;
+      --danger:    #ef4444;
+      --info:      #3b82f6;
+      --nav-h:     56px;
+    }
+    [data-theme="light"] {
+      --bg:    #f8fafc;
+      --card:  #ffffff;
+      --border:#e2e8f0;
+      --text:  #0f172a;
+      --muted: #64748b;
+    }
+    @media (prefers-color-scheme: light) {
+      html:not([data-theme="dark"]) {
+        --bg:    #f8fafc;
+        --card:  #ffffff;
+        --border:#e2e8f0;
+        --text:  #0f172a;
+        --muted: #64748b;
+      }
+    }
+
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 8px); }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
+    h3 { font-size: 1rem; font-weight: 600; margin-bottom: .6rem; color: var(--muted); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      height: var(--nav-h);
+      display: flex; align-items: center;
+      padding: 0 1.5rem;
+      gap: 1.25rem;
+      overflow-x: auto;
+    }
+    nav a {
+      white-space: nowrap; font-size: .8rem; font-weight: 500;
+      color: var(--muted); padding: .3rem .5rem; border-radius: 4px;
+      transition: color .15s, background .15s;
+    }
+    nav a:hover { color: var(--text); background: var(--border); text-decoration: none; }
+    nav .brand { font-weight: 700; color: var(--accent); margin-right: auto; white-space: nowrap; }
+    #theme-toggle {
+      margin-left: auto; background: var(--border); border: none;
+      color: var(--text); padding: .35rem .75rem; border-radius: 6px;
+      cursor: pointer; font-size: .8rem; white-space: nowrap;
+    }
+    #theme-toggle:hover { background: var(--accent); color: #fff; }
+
+    /* ── Layout ── */
+    main { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    section { margin-bottom: 3rem; scroll-margin-top: calc(var(--nav-h) + 12px); }
+    .section-header {
+      display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem;
+      padding-bottom: .6rem; border-bottom: 2px solid var(--accent);
+    }
+    .section-header h2 { margin: 0; }
+    .section-num {
+      width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
+      color: #fff; font-size: .75rem; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    /* ── Cards / Grid ── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+    .grid { display: grid; gap: 1rem; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead th {
+      background: var(--border); color: var(--muted); font-weight: 600;
+      text-align: left; padding: .5rem .75rem; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    td { padding: .5rem .75rem; vertical-align: middle; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+      font-size: .73rem; font-weight: 600; letter-spacing: .02em;
+    }
+    .badge-green  { background: rgba(16,185,129,.15); color: #10b981; }
+    .badge-amber  { background: rgba(245,158,11,.15);  color: #f59e0b; }
+    .badge-red    { background: rgba(239,68,68,.15);   color: #ef4444; }
+    .badge-blue   { background: rgba(59,130,246,.15);  color: #3b82f6; }
+    .badge-gray   { background: rgba(148,163,184,.12); color: #94a3b8; }
+
+    /* ── Health Score Circle ── */
+    .health-ring {
+      display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    }
+    .circle {
+      width: 100px; height: 100px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 1.6rem; font-weight: 800; border: 5px solid;
+    }
+    .circle-green  { border-color: #10b981; color: #10b981; }
+    .circle-yellow { border-color: #f59e0b; color: #f59e0b; }
+    .circle-red    { border-color: #ef4444; color: #ef4444; }
+    .circle small  { font-size: .6rem; font-weight: 400; color: var(--muted); }
+
+    /* ── KPI Stat ── */
+    .stat-label { font-size: .73rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    .stat-sub   { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+
+    /* ── CSS Bar Chart ── */
+    .bar-chart { display: flex; flex-direction: column; gap: .55rem; }
+    .bar-row { display: grid; grid-template-columns: 120px 1fr 80px; align-items: center; gap: .6rem; font-size: .8rem; }
+    .bar-label { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { background: var(--border); border-radius: 4px; height: 14px; overflow: hidden; }
+    .bar-fill  { height: 100%; background: var(--accent); border-radius: 4px; transition: width .3s; }
+    .bar-fill-warn { background: var(--warning); }
+    .bar-fill-info { background: var(--info); }
+    .bar-amount { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+    /* ── Progress Bar (utilization) ── */
+    .util-bar { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; margin-top: .35rem; }
+    .util-fill { height: 100%; border-radius: 5px; background: var(--accent); }
+    .util-fill-warn { background: var(--warning); }
+    .util-fill-bad  { background: var(--danger); }
+
+    /* ── Budget Card ── */
+    .budget-card { padding: 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+    .budget-limit-bar { height: 8px; border-radius: 4px; background: var(--border); margin: .5rem 0; overflow: hidden; }
+    .budget-limit-fill { height: 100%; border-radius: 4px; }
+
+    /* ── Savings Opportunity List ── */
+    .opp-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .opp-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .4rem .75rem; background: rgba(16,185,129,.08);
+      border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; font-size: .85rem;
+    }
+    .opp-amount { font-weight: 700; color: var(--accent); }
+
+    /* ── Header / Footer ── */
+    header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 1.25rem 1.5rem; display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-start;
+    }
+    header .title-block { flex: 1; min-width: 200px; }
+    header h1 { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    header .meta { font-size: .78rem; color: var(--muted); margin-top: .25rem; }
+    footer {
+      background: var(--card); border-top: 1px solid var(--border);
+      padding: 1rem 1.5rem; font-size: .78rem; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between;
+    }
+
+    /* ── Print ── */
+    @media print {
+      :root { --bg: #fff; --card: #fff; --border: #ccc; --text: #000; --muted: #555; }
+      nav, #theme-toggle { display: none !important; }
+      body { font-size: 11px; }
+      section { break-inside: avoid; }
+      .bar-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .bar-row { grid-template-columns: 90px 1fr 60px; font-size: .72rem; }
+      header h1 { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─────────── HEADER ─────────── -->
+<header>
+  <div class="title-block">
+    <h1>AWS FinOps Dashboard</h1>
+    <div class="meta">
+      Report Date: <strong>{{report_date}}</strong> &nbsp;|&nbsp;
+      Profiles: <strong>{{profiles_list}}</strong> &nbsp;|&nbsp;
+      Generated: <span id="gen-ts"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ─────────── NAV ─────────── -->
+<nav>
+  <span class="brand">FinOps</span>
+  <a href="#executive-summary">Summary</a>
+  <a href="#cost-overview">Costs</a>
+  <a href="#waste-detection">Waste</a>
+  <a href="#rightsizing">Rightsizing</a>
+  <a href="#ri-savings-plans">RI &amp; SP</a>
+  <a href="#s3-storage">S3</a>
+  <a href="#budget-status">Budgets</a>
+  <a href="#recommendations">Actions</a>
+  <button id="theme-toggle" onclick="toggleTheme()">Light Mode</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1: EXECUTIVE SUMMARY
+     Expected data shape:
+     {
+       "health_score": 72,
+       "health_status": "yellow",
+       "total_spend": "$12,847.33",
+       "accounts_scanned": 4,
+       "top_savings": [
+         {"description": "Terminate 3 idle EC2 instances", "monthly": "$634.00"},
+         {"description": "Delete 12 unattached EBS volumes", "monthly": "$187.20"},
+         {"description": "Purchase 1-yr RIs for stable workloads", "monthly": "$1,024.00"}
+       ]
+     }
+═══════════════════════════════════════════════════════ -->
+<section id="executive-summary">
+  <div class="section-header">
+    <span class="section-num">1</span>
+    <h2>Executive Summary</h2>
+  </div>
+
+  <div class="grid grid-4" style="align-items:start">
+
+    <!-- Health Score -->
+    <div class="card" style="display:flex;align-items:center;justify-content:center;padding:1.5rem">
+      <div class="health-ring">
+        <div class="circle circle-yellow" id="health-circle">
+          72<small>/100</small>
+        </div>
+        <div style="font-size:.8rem;color:var(--muted);text-align:center">Health Score</div>
+        <span class="badge badge-amber">Needs Attention</span>
+      </div>
+    </div>
+
+    <!-- Total Spend -->
+    <div class="card">
+      <div class="stat-label">Total Spend (MTD)</div>
+      <div class="stat-value">{{total_spend}}</div>
+      <div class="stat-sub">Sample: $12,847.33</div>
+    </div>
+
+    <!-- Accounts Scanned -->
+    <div class="card">
+      <div class="stat-label">Accounts Scanned</div>
+      <div class="stat-value">{{accounts_scanned}}</div>
+      <div class="stat-sub">Sample: 4 AWS accounts</div>
+    </div>
+
+    <!-- Est. Monthly Savings -->
+    <div class="card">
+      <div class="stat-label">Est. Monthly Savings</div>
+      <div class="stat-value" style="color:var(--accent)">$1,845.20</div>
+      <div class="stat-sub">if all actions taken</div>
+    </div>
+
+  </div>
+
+  <!-- Top 3 Savings Opportunities -->
+  <div class="card" style="margin-top:1rem">
+    <h3>Top 3 Savings Opportunities</h3>
+    <ul class="opp-list">
+      <li>
+        <span>Purchase 1-yr Reserved Instances for stable workloads</span>
+        <span class="opp-amount">$1,024/mo</span>
+      </li>
+      <li>
+        <span>Terminate 3 idle EC2 instances (0% CPU, 7+ days)</span>
+        <span class="opp-amount">$634/mo</span>
+      </li>
+      <li>
+        <span>Delete 12 unattached EBS volumes across us-east-1</span>
+        <span class="opp-amount">$187/mo</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2: COST OVERVIEW
+     Expected data shape:
+     {
+       "by_service": [{"service": "EC2", "cost": 4231.10}, ...],
+       "by_region": [{"region": "us-east-1", "cost": 7123.45}, ...],
+       "by_account": [{"account": "prod (123456789)", "cost": 9012.00}, ...],
+       "total": 12847.33,
+       "daily_average": 415.07
+     }
+═══════════════════════════════════════════════════════ -->
+<section id="cost-overview">
+  <div class="section-header">
+    <span class="section-num">2</span>
+    <h2>Cost Overview</h2>
+  </div>
+
+  <div class="grid grid-2">
+
+    <!-- Bar Chart: Cost by Service -->
+    <div class="card">
+      <h3>Cost by Service (MTD)</h3>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <span class="bar-label">EC2</span>
+          <div class="bar-track"><div class="bar-fill" style="width:82%"></div></div>
+          <span class="bar-amount">$4,231</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">RDS</span>
+          <div class="bar-track"><div class="bar-fill bar-fill-info" style="width:45%"></div></div>
+          <span class="bar-amount">$2,318</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">S3</span>
+          <div class="bar-track"><div class="bar-fill bar-fill-info" style="width:28%"></div></div>
+          <span class="bar-amount">$1,440</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">EKS</span>
+          <div class="bar-track"><div class="bar-fill bar-fill-warn" style="width:24%"></div></div>
+          <span class="bar-amount">$1,234</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">CloudFront</span>
+          <div class="bar-track"><div class="bar-fill bar-fill-warn" style="width:18%"></div></div>
+          <span class="bar-amount">$923</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">Lambda</span>
+          <div class="bar-track"><div class="bar-fill" style="width:12%"></div></div>
+          <span class="bar-amount">$614</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">Other</span>
+          <div class="bar-track"><div class="bar-fill" style="width:8%"></div></div>
+          <span class="bar-amount">$408</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI + by_region + daily_average -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div class="card">
+        <div class="stat-label">Daily Average</div>
+        <div class="stat-value">{{daily_average}}</div>
+        <div class="stat-sub">Sample: $415.07 / day</div>
+      </div>
+
+      <div class="card">
+        <h3>Cost by Region</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Region</th><th class="num">Cost (MTD)</th><th class="num">% of Total</th></tr></thead>
+            <tbody>
+              <tr><td>us-east-1</td><td class="num">$7,123.45</td><td class="num">55.5%</td></tr>
+              <tr><td>us-west-2</td><td class="num">$3,211.00</td><td class="num">25.0%</td></tr>
+              <tr><td>eu-west-1</td><td class="num">$1,689.20</td><td class="num">13.1%</td></tr>
+              <tr><td>ap-southeast-1</td><td class="num">$823.68</td><td class="num">6.4%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost by Account -->
+  <div class="card" style="margin-top:1rem">
+    <h3>Cost by Account</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Account</th><th>Account ID</th><th class="num">Cost (MTD)</th><th class="num">% Share</th></tr></thead>
+        <tbody>
+          <tr><td>prod</td><td>123456789012</td><td class="num">$9,012.00</td><td class="num">70.1%</td></tr>
+          <tr><td>staging</td><td>234567890123</td><td class="num">$2,101.50</td><td class="num">16.4%</td></tr>
+          <tr><td>dev</td><td>345678901234</td><td class="num">$987.40</td><td class="num">7.7%</td></tr>
+          <tr><td>sandbox</td><td>456789012345</td><td class="num">$746.43</td><td class="num">5.8%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 3: WASTE DETECTION
+     Expected data shape:
+     [
+       {
+         "resource_type": "EC2 Instance",
+         "resource_id": "i-0abc12345def67890",
+         "region": "us-east-1",
+         "profile": "prod",
+         "est_monthly_cost": 187.20,
+         "recommendation": "Terminate — 0% CPU for 14 days"
+       }, ...
+     ]
+═══════════════════════════════════════════════════════ -->
+<section id="waste-detection">
+  <div class="section-header">
+    <span class="section-num">3</span>
+    <h2>Waste Detection</h2>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Resource Type</th>
+            <th>Resource ID</th>
+            <th>Region</th>
+            <th>Profile</th>
+            <th class="num">Est. Monthly Cost</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody id="waste-tbody">
+          <tr>
+            <td>EC2 Instance</td>
+            <td><code>i-0abc12345def67890</code></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num">$213.84</td>
+            <td><span class="badge badge-red">Terminate</span> 0% CPU 14 days</td>
+          </tr>
+          <tr>
+            <td>EC2 Instance</td>
+            <td><code>i-0def98765abc43210</code></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num">$187.20</td>
+            <td><span class="badge badge-red">Terminate</span> 0% CPU 21 days</td>
+          </tr>
+          <tr>
+            <td>EC2 Instance</td>
+            <td><code>i-0fed11223344aabb5</code></td>
+            <td>us-west-2</td>
+            <td>staging</td>
+            <td class="num">$232.96</td>
+            <td><span class="badge badge-red">Terminate</span> 0% CPU 9 days</td>
+          </tr>
+          <tr>
+            <td>EBS Volume</td>
+            <td><code>vol-0aabbccddeeff1122</code></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num">$24.60</td>
+            <td><span class="badge badge-amber">Delete</span> Unattached 30 days</td>
+          </tr>
+          <tr>
+            <td>EBS Volume</td>
+            <td><code>vol-0zzyyxxwwvvuu9988</code></td>
+            <td>eu-west-1</td>
+            <td>prod</td>
+            <td class="num">$18.40</td>
+            <td><span class="badge badge-amber">Delete</span> Unattached 45 days</td>
+          </tr>
+          <tr>
+            <td>Elastic IP</td>
+            <td><code>eipalloc-0a1b2c3d4e5f</code></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num">$3.60</td>
+            <td><span class="badge badge-amber">Release</span> Not associated</td>
+          </tr>
+          <tr>
+            <td>RDS Snapshot</td>
+            <td><code>rds:mydb-2024-01-15</code></td>
+            <td>us-west-2</td>
+            <td>staging</td>
+            <td class="num">$11.30</td>
+            <td><span class="badge badge-blue">Review</span> 90+ days old</td>
+          </tr>
+          <tr>
+            <td>NAT Gateway</td>
+            <td><code>nat-0112233445566aabb</code></td>
+            <td>us-east-1</td>
+            <td>dev</td>
+            <td class="num">$32.40</td>
+            <td><span class="badge badge-amber">Delete</span> No traffic 30 days</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">
+      Populated from <code>{{waste_findings}}</code> — showing sample data.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 4: RIGHTSIZING
+     Expected data shape:
+     [
+       {
+         "instance_id": "i-0abc12345def67890",
+         "current_type": "m5.2xlarge",
+         "recommended_type": "m5.large",
+         "region": "us-east-1",
+         "profile": "prod",
+         "est_monthly_savings": 234.56
+       }, ...
+     ]
+═══════════════════════════════════════════════════════ -->
+<section id="rightsizing">
+  <div class="section-header">
+    <span class="section-num">4</span>
+    <h2>Rightsizing Recommendations</h2>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Instance ID</th>
+            <th>Current Type</th>
+            <th>Recommended Type</th>
+            <th>Region</th>
+            <th>Profile</th>
+            <th class="num">Est. Monthly Savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>i-0abc12345def67890</code></td>
+            <td><span class="badge badge-red">m5.2xlarge</span></td>
+            <td><span class="badge badge-green">m5.large</span></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num" style="color:var(--accent)">$234.56</td>
+          </tr>
+          <tr>
+            <td><code>i-0bcd23456efa78901</code></td>
+            <td><span class="badge badge-amber">r5.xlarge</span></td>
+            <td><span class="badge badge-green">r5.large</span></td>
+            <td>us-east-1</td>
+            <td>prod</td>
+            <td class="num" style="color:var(--accent)">$178.20</td>
+          </tr>
+          <tr>
+            <td><code>i-0cde34567fab89012</code></td>
+            <td><span class="badge badge-amber">c5.4xlarge</span></td>
+            <td><span class="badge badge-green">c5.xlarge</span></td>
+            <td>us-west-2</td>
+            <td>staging</td>
+            <td class="num" style="color:var(--accent)">$312.40</td>
+          </tr>
+          <tr>
+            <td><code>i-0def45678abc90123</code></td>
+            <td><span class="badge badge-red">t3.2xlarge</span></td>
+            <td><span class="badge badge-green">t3.medium</span></td>
+            <td>eu-west-1</td>
+            <td>prod</td>
+            <td class="num" style="color:var(--accent)">$97.30</td>
+          </tr>
+          <tr>
+            <td><code>i-0efa56789bcd01234</code></td>
+            <td><span class="badge badge-amber">m5.xlarge</span></td>
+            <td><span class="badge badge-green">m5.large</span></td>
+            <td>ap-southeast-1</td>
+            <td>prod</td>
+            <td class="num" style="color:var(--accent)">$89.10</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">
+      Populated from <code>{{rightsizing}}</code> — showing sample data.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5: RI & SAVINGS PLANS
+     Expected data shape:
+     {
+       "ri_utilization": {
+         "percent": 64.2,
+         "active_count": 18,
+         "expiring_soon": [{"id": "ri-abc123", "expiry": "2025-08-15", "type": "m5.large"}]
+       },
+       "sp_utilization": {
+         "percent": 81.5,
+         "commitment_per_hr": 3.50,
+         "expiring_soon": []
+       },
+       "ri_coverage": 47.3,
+       "sp_coverage": 62.1
+     }
+═══════════════════════════════════════════════════════ -->
+<section id="ri-savings-plans">
+  <div class="section-header">
+    <span class="section-num">5</span>
+    <h2>Reserved Instances &amp; Savings Plans</h2>
+  </div>
+
+  <div class="grid grid-2">
+
+    <!-- RI Utilization -->
+    <div class="card">
+      <h3>Reserved Instance Utilization</h3>
+      <div style="font-size:2rem;font-weight:800;color:var(--warning)">64.2%</div>
+      <div class="util-bar"><div class="util-fill util-fill-warn" style="width:64.2%"></div></div>
+      <div style="margin-top:.6rem;font-size:.82rem;color:var(--muted)">18 active RIs &nbsp;|&nbsp; Coverage: 47.3% of EC2 usage</div>
+
+      <h3 style="margin-top:1rem">Expiring Within 90 Days</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>RI ID</th><th>Type</th><th>Region</th><th>Expires</th></tr></thead>
+          <tbody>
+            <tr><td><code>ri-abc123</code></td><td>m5.large</td><td>us-east-1</td><td><span class="badge badge-red">2025-08-15</span></td></tr>
+            <tr><td><code>ri-def456</code></td><td>c5.xlarge</td><td>us-west-2</td><td><span class="badge badge-amber">2025-09-02</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Savings Plan Utilization -->
+    <div class="card">
+      <h3>Savings Plan Utilization</h3>
+      <div style="font-size:2rem;font-weight:800;color:var(--accent)">81.5%</div>
+      <div class="util-bar"><div class="util-fill" style="width:81.5%"></div></div>
+      <div style="margin-top:.6rem;font-size:.82rem;color:var(--muted)">$3.50/hr commitment &nbsp;|&nbsp; Coverage: 62.1% of compute usage</div>
+
+      <h3 style="margin-top:1rem">Expiring Within 90 Days</h3>
+      <div style="font-size:.82rem;color:var(--muted);padding:.5rem 0">No Savings Plans expiring within 90 days.</div>
+
+      <div class="card" style="margin-top:1rem;background:rgba(16,185,129,.07);border-color:var(--accent)">
+        <div class="stat-label">Recommended Additional Commitment</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--accent);margin-top:.2rem">$1.75/hr</div>
+        <div style="font-size:.78rem;color:var(--muted)">1-yr Compute SP — est. $1,024/mo savings</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 6: S3 & STORAGE
+     Expected data shape:
+     [
+       {
+         "bucket": "my-app-assets",
+         "region": "us-east-1",
+         "size_gb": 1240,
+         "storage_class": "STANDARD",
+         "has_lifecycle": false,
+         "recommendation": "Add lifecycle to move objects > 30d to IA",
+         "est_monthly_savings": 48.20
+       }, ...
+     ]
+═══════════════════════════════════════════════════════ -->
+<section id="s3-storage">
+  <div class="section-header">
+    <span class="section-num">6</span>
+    <h2>S3 &amp; Storage Optimization</h2>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Bucket</th>
+            <th>Region</th>
+            <th class="num">Size (GB)</th>
+            <th>Storage Class</th>
+            <th>Lifecycle</th>
+            <th>Recommendation</th>
+            <th class="num">Est. Savings/mo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>my-app-assets</code></td>
+            <td>us-east-1</td>
+            <td class="num">1,240</td>
+            <td>STANDARD</td>
+            <td><span class="badge badge-red">None</span></td>
+            <td>Move objects &gt;30d to S3-IA</td>
+            <td class="num" style="color:var(--accent)">$48.20</td>
+          </tr>
+          <tr>
+            <td><code>prod-backups-2024</code></td>
+            <td>us-east-1</td>
+            <td class="num">8,320</td>
+            <td>STANDARD</td>
+            <td><span class="badge badge-red">None</span></td>
+            <td>Transition to Glacier after 90d, delete after 365d</td>
+            <td class="num" style="color:var(--accent)">$187.40</td>
+          </tr>
+          <tr>
+            <td><code>ml-training-data</code></td>
+            <td>us-west-2</td>
+            <td class="num">3,890</td>
+            <td>STANDARD_IA</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td>Consider Intelligent-Tiering (mixed access pattern)</td>
+            <td class="num" style="color:var(--accent)">$22.10</td>
+          </tr>
+          <tr>
+            <td><code>app-logs-archive</code></td>
+            <td>eu-west-1</td>
+            <td class="num">2,100</td>
+            <td>STANDARD</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>Add expiration rule for objects &gt;180d</td>
+            <td class="num" style="color:var(--accent)">$31.50</td>
+          </tr>
+          <tr>
+            <td><code>static-website-cdn</code></td>
+            <td>us-east-1</td>
+            <td class="num">14</td>
+            <td>STANDARD</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td>OK — small bucket, versioning enabled</td>
+            <td class="num">$0.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">
+      Populated from <code>{{s3_findings}}</code> — showing sample data.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 7: BUDGET STATUS
+     Expected data shape:
+     [
+       {
+         "name": "Production Monthly",
+         "limit": 10000,
+         "actual": 9012.00,
+         "forecast": 11234.00,
+         "currency": "USD"
+       }, ...
+     ]
+═══════════════════════════════════════════════════════ -->
+<section id="budget-status">
+  <div class="section-header">
+    <span class="section-num">7</span>
+    <h2>Budget Status</h2>
+  </div>
+
+  <div class="grid grid-2">
+
+    <div class="budget-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Production Monthly</strong>
+        <span class="badge badge-red">Over Forecast</span>
+      </div>
+      <div class="budget-limit-bar">
+        <div class="budget-limit-fill" style="width:90.1%;background:var(--warning)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)">
+        <span>Actual: <strong style="color:var(--text)">$9,012</strong></span>
+        <span>Forecast: <strong style="color:var(--danger)">$11,234</strong></span>
+        <span>Limit: <strong style="color:var(--text)">$10,000</strong></span>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Staging &amp; Dev</strong>
+        <span class="badge badge-green">On Track</span>
+      </div>
+      <div class="budget-limit-bar">
+        <div class="budget-limit-fill" style="width:60.9%;background:var(--accent)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)">
+        <span>Actual: <strong style="color:var(--text)">$3,089</strong></span>
+        <span>Forecast: <strong style="color:var(--text)">$3,421</strong></span>
+        <span>Limit: <strong style="color:var(--text)">$5,000</strong></span>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Data / Analytics</strong>
+        <span class="badge badge-amber">Watch</span>
+      </div>
+      <div class="budget-limit-bar">
+        <div class="budget-limit-fill" style="width:84.7%;background:var(--warning)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)">
+        <span>Actual: <strong style="color:var(--text)">$1,694</strong></span>
+        <span>Forecast: <strong style="color:var(--text)">$1,980</strong></span>
+        <span>Limit: <strong style="color:var(--text)">$2,000</strong></span>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Sandbox / Experiments</strong>
+        <span class="badge badge-green">On Track</span>
+      </div>
+      <div class="budget-limit-bar">
+        <div class="budget-limit-fill" style="width:49.8%;background:var(--accent)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)">
+        <span>Actual: <strong style="color:var(--text)">$746</strong></span>
+        <span>Forecast: <strong style="color:var(--text)">$810</strong></span>
+        <span>Limit: <strong style="color:var(--text)">$1,500</strong></span>
+      </div>
+    </div>
+
+  </div>
+  <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">
+    Populated from <code>{{budget_status}}</code> — showing sample data.
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 8: RECOMMENDATIONS
+     Expected data shape:
+     [
+       {
+         "action": "Purchase 1-yr EC2 Reserved Instances",
+         "est_annual_savings": 12288,
+         "effort": "Easy",
+         "risk": "Low",
+         "category": "Commitment"
+       }, ...
+     ]
+═══════════════════════════════════════════════════════ -->
+<section id="recommendations">
+  <div class="section-header">
+    <span class="section-num">8</span>
+    <h2>Prioritized Recommendations</h2>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Action</th>
+            <th class="num">Est. Annual Savings</th>
+            <th>Effort</th>
+            <th>Risk</th>
+            <th>Category</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Purchase 1-yr EC2 Reserved Instances for stable workloads</td>
+            <td class="num" style="color:var(--accent)">$12,288</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Commitment</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Terminate 3 idle EC2 instances (zero CPU utilization)</td>
+            <td class="num" style="color:var(--accent)">$7,608</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Waste</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Rightsize 5 over-provisioned EC2 instances</td>
+            <td class="num" style="color:var(--accent)">$10,694</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Rightsizing</td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Add S3 lifecycle policies to 4 large buckets</td>
+            <td class="num" style="color:var(--accent)">$3,372</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Storage</td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Delete 12 unattached EBS volumes</td>
+            <td class="num" style="color:var(--accent)">$2,246</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Waste</td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Increase Savings Plan coverage from 62% to 80%</td>
+            <td class="num" style="color:var(--accent)">$5,040</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Commitment</td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>Migrate RDS to Graviton2 instance family</td>
+            <td class="num" style="color:var(--accent)">$4,560</td>
+            <td><span class="badge badge-red">Hard</span></td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td>Rightsizing</td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>Enable S3 Intelligent-Tiering on mixed-access buckets</td>
+            <td class="num" style="color:var(--accent)">$1,452</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Storage</td>
+          </tr>
+          <tr>
+            <td><strong>9</strong></td>
+            <td>Remove 3 unused NAT Gateways in dev accounts</td>
+            <td class="num" style="color:var(--accent)">$1,166</td>
+            <td><span class="badge badge-green">Easy</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+            <td>Waste</td>
+          </tr>
+          <tr>
+            <td><strong>10</strong></td>
+            <td>Consolidate cross-region data transfer via VPC endpoints</td>
+            <td class="num" style="color:var(--accent)">$3,120</td>
+            <td><span class="badge badge-amber">Medium</span></td>
+            <td><span class="badge badge-red">High</span></td>
+            <td>Architecture</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted)">
+      Populated from <code>{{recommendations}}</code> — showing sample data.
+      Total estimated annual savings: <strong style="color:var(--accent)">$51,546</strong>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ─────────── FOOTER ─────────── -->
+<footer>
+  <span>Generated by <strong>AWS FinOps Agent</strong> &mdash; Report Date: {{report_date}}</span>
+  <span style="text-align:right">Requires: Cost Explorer, CloudWatch, Trusted Advisor, and Budgets IAM permissions. See <code>docs/iam-policy.json</code>.</span>
+</footer>
+
+<script>
+  /* ── Generation Timestamp ── */
+  var ts = document.getElementById('gen-ts');
+  if (ts) ts.textContent = new Date().toLocaleString();
+
+  /* ── Theme Toggle ── */
+  function toggleTheme() {
+    var html = document.documentElement;
+    var btn  = document.getElementById('theme-toggle');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.setAttribute('data-theme', 'light');
+      btn.textContent = 'Dark Mode';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      btn.textContent = 'Light Mode';
+    }
+  }
+
+  /* ── Health Score Colorizer ── */
+  (function() {
+    var circle = document.getElementById('health-circle');
+    if (!circle) return;
+    var score = parseInt(circle.textContent, 10);
+    circle.classList.remove('circle-green', 'circle-yellow', 'circle-red');
+    if (score >= 80) {
+      circle.classList.add('circle-green');
+      circle.nextElementSibling && (circle.nextElementSibling.nextElementSibling.className = 'badge badge-green');
+      circle.nextElementSibling && (circle.nextElementSibling.nextElementSibling.textContent = 'Healthy');
+    } else if (score >= 60) {
+      circle.classList.add('circle-yellow');
+    } else {
+      circle.classList.add('circle-red');
+      circle.nextElementSibling && (circle.nextElementSibling.nextElementSibling.className = 'badge badge-red');
+      circle.nextElementSibling && (circle.nextElementSibling.nextElementSibling.textContent = 'Critical');
+    }
+  })();
+
+  /* ── Active Nav Highlight on Scroll ── */
+  (function() {
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('nav a[href^="#"]');
+    var navH     = 60;
+
+    function onScroll() {
+      var scrollY = window.scrollY + navH + 20;
+      var current = '';
+      sections.forEach(function(s) {
+        if (s.offsetTop <= scrollY) current = s.id;
+      });
+      navLinks.forEach(function(a) {
+        var active = a.getAttribute('href') === '#' + current;
+        a.style.color    = active ? 'var(--accent)' : '';
+        a.style.background = active ? 'rgba(16,185,129,.12)' : '';
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+</body>
+</html>
