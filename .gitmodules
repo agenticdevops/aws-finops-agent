@@ -1,0 +1,3 @@
+[submodule "aws-finops-mcp-server"]
+	path = aws-finops-mcp-server
+	url = https://github.com/ravikiranvm/aws-finops-mcp-server.git

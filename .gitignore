@@ -3,3 +3,4 @@
 __pycache__/
 .env
 finops-report-*.html
+finops-test-execution-log.txt
