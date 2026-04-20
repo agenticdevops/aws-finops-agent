@@ -3,7 +3,7 @@
 Weekly AWS FinOps agent that scans multi-account environments, identifies cost optimization opportunities, and generates comprehensive HTML dashboard reports.
 
 Two parallel runtimes:
-- **Hermes Agent** — local, cron-scheduled, full guardrails
+- **Hermes Agent** — local, cron-scheduled, dedicated profile with guardrails
 - **Claude Routine** — Anthropic cloud, zero maintenance
 
 ## Features
@@ -13,15 +13,17 @@ Two parallel runtimes:
 - **Multi-account**: iterates all AWS CLI profiles in `~/.aws/credentials`
 - **Delivery**: S3 upload + Slack notification with pre-signed URL
 - **Read-only**: zero destructive AWS operations, enforced at IAM + guardrail level
+- **Dedicated Hermes profile**: isolated config, SOUL, guardrails — doesn't pollute your main agent
 - **Dark/light theme**, responsive, print-friendly reports
 
-## Quick Start
+## Quick Start (Hermes)
 
 ### Prerequisites
 
 - [Hermes Agent](https://github.com/NousResearch/hermes-agent) installed
 - AWS CLI configured with at least one profile
 - `ANTHROPIC_API_KEY` set in `~/.hermes/.env`
+- `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
 ### 1. Clone
 
@@ -36,55 +38,64 @@ cd aws-finops-agent
 cd aws-finops-mcp-server && uv sync && cd ..
 ```
 
-### 3. Configure Hermes
+### 3. Install Skills (global)
 
-Add to your `~/.hermes/config.yaml`:
-
-```yaml
-# Skills
-skills:
-  external_dirs:
-    - /path/to/aws-finops-agent/hermes/skills
-
-# MCP Server
-mcp_servers:
-  aws-finops:
-    command: "uv"
-    args: ["run", "--directory", "/path/to/aws-finops-agent/aws-finops-mcp-server", "aws-finops-mcp-server"]
-    timeout: 120
-
-# Guardrails (auto-approve read-only AWS commands)
-approvals:
-  mode: "smart"
-  auto_approve_patterns:
-    - "^aws\\s+\\S+\\s+describe-"
-    - "^aws\\s+\\S+\\s+list-"
-    - "^aws\\s+\\S+\\s+get-"
-    - "^aws\\s+ce\\s+get-"
-    - "^aws\\s+s3api\\s+get-"
-    - "^aws\\s+s3api\\s+list-"
-    - "^aws\\s+sts\\s+get-caller-identity"
-    - "^aws\\s+configure\\s+list-profiles"
-    - "^jq\\s+"
-```
-
-### 4. Run Interactively
+Copy skills to Hermes global skills directory:
 
 ```bash
-hermes
+cp -r hermes/skills/aws-finops-audit ~/.hermes/skills/devops/
+cp -r hermes/skills/aws-cost-analysis ~/.hermes/skills/devops/
+cp -r hermes/skills/aws-report-gen ~/.hermes/skills/devops/
+```
+
+Skills are now auto-discovered by all Hermes profiles.
+
+### 4. Create Dedicated Profile
+
+```bash
+mkdir -p ~/.hermes/profiles/finops
+cp hermes/SOUL.md ~/.hermes/profiles/finops/SOUL.md
+cp hermes/config.yaml ~/.hermes/profiles/finops/config.yaml
+```
+
+Edit `~/.hermes/profiles/finops/config.yaml` and update the MCP server path:
+
+```yaml
+mcp_servers:
+  aws-finops:
+    command: "/full/path/to/uv"    # Run: which uv
+    args: ["run", "--directory", "/full/path/to/aws-finops-agent/aws-finops-mcp-server",
+           "python", "-m", "aws_finops_mcp_server.main"]
+    timeout: 120
+    connect_timeout: 30
+```
+
+### 5. Run Interactively
+
+```bash
+hermes -p finops
 # Ask: "Run a FinOps audit on my AWS accounts"
 ```
 
-### 5. Schedule Weekly
+Your main `hermes` agent remains untouched.
+
+### 6. Schedule Weekly
 
 ```bash
-hermes cron create --name "aws-finops-weekly" \
+hermes -p finops cron create --name "aws-finops-weekly" \
   --skill aws-finops-audit \
   --skill aws-cost-analysis \
   --skill aws-report-gen \
   "0 9 * * 1" \
   "Run a complete FinOps audit. Follow shared/prompt.md instructions."
 ```
+
+Verify:
+```bash
+hermes -p finops cron list
+```
+
+Note: cron jobs require `hermes gateway install` to auto-fire when your machine is on.
 
 ## Project Structure
 
@@ -96,9 +107,9 @@ aws-finops-agent/
 │   ├── iam-policy.json              # Least-privilege IAM policy
 │   └── slack-notify.sh              # S3 upload + Slack webhook
 ├── hermes/                          # Hermes Agent runtime
-│   ├── config.yaml                  # Model, MCP, guardrails config
-│   ├── SOUL.md                      # Agent persona
-│   └── skills/                      # Hermes skills
+│   ├── config.yaml                  # Profile config (copy to ~/.hermes/profiles/finops/)
+│   ├── SOUL.md                      # Agent persona (copy to ~/.hermes/profiles/finops/)
+│   └── skills/                      # Hermes skills (copy to ~/.hermes/skills/devops/)
 │       ├── aws-finops-audit/        # Waste detection
 │       ├── aws-cost-analysis/       # Cost analysis + optimization
 │       └── aws-report-gen/          # Report rendering + delivery
@@ -111,16 +122,32 @@ aws-finops-agent/
 
 ## Agent Profile
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| **Persona** | `hermes/SOUL.md` | Agent identity, personality, workflow |
-| **Config** | `hermes/config.yaml` | Model (Haiku 4.5), MCP, guardrails, approval patterns |
-| **Master Prompt** | `shared/prompt.md` | Full instructions with safety rules, execution phases, CLI commands |
-| **Guardrails** | `hermes/config.yaml` (approvals section) | Smart approval + auto-approve patterns for read-only commands |
-| **Audit Skill** | `hermes/skills/aws-finops-audit/SKILL.md` | Waste detection procedures |
-| **Cost Skill** | `hermes/skills/aws-cost-analysis/SKILL.md` | Cost analysis procedures |
-| **Report Skill** | `hermes/skills/aws-report-gen/SKILL.md` | Report generation + delivery |
-| **IAM Policy** | `shared/iam-policy.json` | AWS permissions (29 read-only + S3 write) |
+The FinOps agent runs as a dedicated Hermes profile (`finops`), isolated from your main agent.
+
+| Component | Repo File | Installed Location |
+|-----------|-----------|-------------------|
+| **Persona** | `hermes/SOUL.md` | `~/.hermes/profiles/finops/SOUL.md` |
+| **Config** | `hermes/config.yaml` | `~/.hermes/profiles/finops/config.yaml` |
+| **Audit Skill** | `hermes/skills/aws-finops-audit/SKILL.md` | `~/.hermes/skills/devops/aws-finops-audit/` |
+| **Cost Skill** | `hermes/skills/aws-cost-analysis/SKILL.md` | `~/.hermes/skills/devops/aws-cost-analysis/` |
+| **Report Skill** | `hermes/skills/aws-report-gen/SKILL.md` | `~/.hermes/skills/devops/aws-report-gen/` |
+| **Master Prompt** | `shared/prompt.md` | Referenced at runtime from project dir |
+| **IAM Policy** | `shared/iam-policy.json` | Applied to AWS IAM users/roles |
+| **Guardrails** | `hermes/config.yaml` | Smart approval + 11 auto-approve patterns for reads |
+
+### Profile Isolation
+
+```bash
+hermes                # Your main agent (unchanged)
+hermes -p finops      # FinOps specialist (own SOUL, config, guardrails, memory)
+hermes -p finops cron list   # FinOps cron jobs only
+```
+
+Each profile gets its own:
+- `SOUL.md` (persona)
+- `config.yaml` (model, MCP, guardrails)
+- Memory and session history
+- Cron jobs
 
 ## Report Sections
 
@@ -135,17 +162,17 @@ aws-finops-agent/
 
 ## Security
 
-All operations are read-only. Security is enforced at three layers:
+All operations are read-only. Security enforced at three layers:
 
 1. **IAM Policy** (`shared/iam-policy.json`) — 29 read-only actions + scoped S3 write
 2. **Agent Prompt** (`shared/prompt.md`) — explicit safety rules in every instruction
-3. **Hermes Guardrails** (`hermes/config.yaml`) — smart approval blocks destructive commands
+3. **Hermes Guardrails** (`hermes/config.yaml`) — smart approval blocks destructive commands, auto-approves reads
 
-Blocked commands include: `delete-*`, `terminate-*`, `stop-*`, `modify-*`, `aws iam *`, `aws organizations *`, `aws sts assume-role`, `rm -rf`, `sudo`, `curl | bash`.
+Blocked commands: `delete-*`, `terminate-*`, `stop-*`, `modify-*`, `aws iam *`, `aws organizations *`, `aws sts assume-role`, `rm -rf`, `sudo`, `curl | bash`.
 
 ## S3 + Slack Delivery
 
-Set environment variables:
+Set environment variables (in `~/.hermes/profiles/finops/.env` or shell):
 
 ```bash
 export S3_REPORT_BUCKET=my-finops-reports
@@ -161,6 +188,8 @@ For cloud-hosted execution without a local machine:
 1. Edit `routines/routine-config.json` — replace all `REPLACE_WITH_*` placeholders
 2. Run `routines/setup.sh` for guided setup
 3. Or use Claude Code: `/schedule` to create the routine
+
+Note: Claude Routines run in isolated cloud VMs. AWS credentials are passed as environment variables (not `~/.aws/credentials`). For multi-account, either create one routine per account or use cross-account IAM roles.
 
 ## License
 

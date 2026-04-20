@@ -1,32 +1,47 @@
-# AWS FinOps Agent — Hermes Configuration
-# Usage: hermes --config ./hermes/config.yaml (run from project root)
-# NOTE: Relative paths (cwd, MCP, skills) require launching Hermes from the project root.
+# AWS FinOps Agent — Hermes Profile Config
+#
+# INSTALL:
+#   mkdir -p ~/.hermes/profiles/finops
+#   cp hermes/SOUL.md ~/.hermes/profiles/finops/SOUL.md
+#   cp hermes/config.yaml ~/.hermes/profiles/finops/config.yaml
+#   cp -r hermes/skills/aws-finops-* ~/.hermes/skills/devops/
+#
+# THEN EDIT this file to set absolute paths for MCP server:
+#   mcp_servers.aws-finops.command → full path to uv (run: which uv)
+#   mcp_servers.aws-finops.args[2] → full path to aws-finops-mcp-server/
+#
+# LAUNCH:
+#   hermes -p finops
+#
+# CRON:
+#   hermes -p finops cron create --name "aws-finops-weekly" \
+#     --skill aws-finops-audit --skill aws-cost-analysis --skill aws-report-gen \
+#     "0 9 * * 1" "Run a complete FinOps audit."
 
 # =============================================================================
 # Model
 # =============================================================================
 model:
-  default: "anthropic/claude-haiku-4-5"
+  default: "claude-haiku-4-5-20251001"
   provider: "anthropic"
 
 # =============================================================================
-# Terminal (where agent executes aws cli commands)
+# Terminal
 # =============================================================================
 terminal:
   backend: "local"
   cwd: "."
   timeout: 300
-  lifetime_seconds: 600
 
 # =============================================================================
 # Approval & Guardrails
 # =============================================================================
 # Mode: "smart" uses auxiliary LLM to auto-approve safe commands.
 # Built-in DANGEROUS_PATTERNS in Hermes block rm -rf, chmod 777, etc.
-# auto_approve_patterns below skip LLM check for known-safe read commands.
+# auto_approve_patterns skip LLM check for known-safe read commands.
 approvals:
   mode: "smart"
-  timeout: 30
+  timeout: 45
   auto_approve_patterns:
     - "^aws\\s+\\S+\\s+describe-"
     - "^aws\\s+\\S+\\s+list-"
@@ -43,12 +58,24 @@ approvals:
 # =============================================================================
 # MCP Servers
 # =============================================================================
+# IMPORTANT: Replace with absolute paths after copying to profile dir.
+# Run: which uv → replace command value
+# Use full path to aws-finops-mcp-server directory
 mcp_servers:
   aws-finops:
-    command: "uv"
-    args: ["run", "--directory", "./aws-finops-mcp-server", "aws-finops-mcp-server"]
+    command: "/path/to/uv"
+    args: ["run", "--directory", "/path/to/aws-finops-agent/aws-finops-mcp-server",
+           "python", "-m", "aws_finops_mcp_server.main"]
     timeout: 120
     connect_timeout: 30
+
+# =============================================================================
+# Skills
+# =============================================================================
+# Skills installed globally at ~/.hermes/skills/devops/
+# No external_dirs needed — Hermes auto-discovers them.
+skills:
+  external_dirs: []
 
 # =============================================================================
 # Agent Behavior
@@ -63,14 +90,6 @@ agent:
 memory:
   memory_enabled: true
   user_profile_enabled: false
-  memory_char_limit: 2200
-
-# =============================================================================
-# Skills
-# =============================================================================
-skills:
-  external_dirs:
-    - ./hermes/skills
 
 # =============================================================================
 # Context Compression
@@ -80,11 +99,3 @@ compression:
   threshold: 0.50
   target_ratio: 0.20
   protect_last_n: 20
-
-# =============================================================================
-# Display
-# =============================================================================
-display:
-  compact: false
-  tool_progress: "all"
-  streaming: true
