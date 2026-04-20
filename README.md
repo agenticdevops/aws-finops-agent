@@ -28,13 +28,16 @@ Two parallel runtimes:
 ### 1. Clone
 
 ```bash
-git clone --recurse-submodules https://github.com/agenticdevops/aws-finops-agent.git
+git clone https://github.com/agenticdevops/aws-finops-agent.git
 cd aws-finops-agent
 ```
 
-### 2. Install MCP Server
+### 2. Install MCP Server (optional)
+
+The [aws-finops-mcp-server](https://github.com/ravikiranvm/aws-finops-mcp-server) provides structured cost/audit data via MCP. The agent works without it (falls back to AWS CLI), but MCP gives cleaner data for cost overview and basic waste detection.
 
 ```bash
+git clone https://github.com/ravikiranvm/aws-finops-mcp-server.git
 cd aws-finops-mcp-server && uv sync && cd ..
 ```
 
@@ -116,8 +119,8 @@ aws-finops-agent/
 ├── routines/                        # Claude Routine runtime
 │   ├── routine-config.json          # Routine definition
 │   └── setup.sh                     # Setup guide
-├── aws-finops-mcp-server/           # MCP server (submodule)
 └── docs/superpowers/                # Design spec + implementation plan
+# aws-finops-mcp-server/            # Optional — clone separately (see step 2)
 ```
 
 ## Agent Profile

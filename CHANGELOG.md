@@ -14,7 +14,9 @@
 - Hermes SOUL persona for AWS FinOps Analyst
 - Claude Routine configuration for weekly cloud-hosted execution
 - Claude Routine setup script with placeholder validation
-- aws-finops-mcp-server integrated as git submodule (read-only, 2 tools: get_cost, run_finops_audit)
+- Optional aws-finops-mcp-server integration (clone separately, read-only, 2 tools: get_cost, run_finops_audit)
+- Dedicated Hermes profile (`hermes -p finops`) — isolated from main agent
+- Skills installed globally at `~/.hermes/skills/devops/`
 
 ### Security
 - All AWS operations read-only (describe, list, get) except S3 report upload
